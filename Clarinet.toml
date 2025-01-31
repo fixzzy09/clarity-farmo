@@ -8,6 +8,10 @@ requirements = []
 path = "contracts/farmo-registry.clar"
 depends_on = []
 
+[contracts.farmo-transfer]
+path = "contracts/farmo-transfer.clar"
+depends_on = []
+
 [repl]
 costs_version = 2
 parser_version = 2
