@@ -34,15 +34,47 @@
   (origin (string-utf8 64)))
   (let
     ((product-id (+ (var-get product-counter) u1)))
-    ;; Implementation
-))
+    (map-insert products
+      { product-id: product-id }
+      {
+        name: name,
+        owner: tx-sender,
+        origin: origin,
+        timestamp: block-height,
+        active: true
+      })
+    (var-set product-counter product-id)
+    (ok product-id)))
 
 (define-public (register-participant 
   (role (string-ascii 20)))
-  ;; Implementation
-)
+  (if (map-get? participants { participant-id: tx-sender })
+    err-already-registered
+    (begin
+      (map-insert participants
+        { participant-id: tx-sender }
+        {
+          role: role,
+          verified: false,
+          active: true
+        })
+      (ok true))))
 
 ;; Read only functions
 (define-read-only (get-product (product-id uint))
-  ;; Implementation
-)
+  (map-get? products { product-id: product-id }))
+
+(define-read-only (get-product-owner (product-id uint))
+  (match (map-get? products { product-id: product-id })
+    product (ok (get owner product))
+    (err "Product not found")))
+
+(define-public (update-product-owner (product-id uint) (new-owner principal))
+  (if (is-some (map-get? products { product-id: product-id }))
+    (begin
+      (map-set products
+        { product-id: product-id }
+        (merge (unwrap-panic (map-get? products { product-id: product-id }))
+              { owner: new-owner }))
+      (ok true))
+    err-invalid-product))
