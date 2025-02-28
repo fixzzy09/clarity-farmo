@@ -35,11 +35,19 @@ Clarinet.test({
   name: "Validates transfer event logging",
   async fn(chain: Chain, accounts: Map<string, Account>) {
     const deployer = accounts.get("deployer")!;
+    const wallet1 = accounts.get("wallet_1")!;
     
     let block = chain.mineBlock([
       Tx.contractCall("farmo-transfer", "log-transfer-event",
-        ["u1", types.ascii("completed")], deployer.address)
+        ["u1", types.principal(wallet1.address), types.ascii("completed")], deployer.address)
     ]);
     assertEquals(block.receipts[0].result.expectOk(), "u1");
+
+    // Test invalid status
+    block = chain.mineBlock([
+      Tx.contractCall("farmo-transfer", "log-transfer-event",
+        ["u1", types.principal(wallet1.address), types.ascii("invalid")], deployer.address)
+    ]);
+    assertEquals(block.receipts[0].result.expectErr(), "u102");
   }
 });
