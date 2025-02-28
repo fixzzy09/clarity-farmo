@@ -4,6 +4,7 @@
 (define-constant contract-owner tx-sender)
 (define-constant err-not-authorized (err u100))
 (define-constant err-invalid-product (err u101))
+(define-constant err-invalid-status (err u102))
 
 ;; Maps
 (define-map transfer-events
@@ -27,22 +28,25 @@
     (if (is-eq tx-sender current-owner)
       (begin
         (try! (contract-call? .farmo-registry update-product-owner product-id new-owner))
-        (try! (log-transfer-event product-id "completed"))
+        (try! (log-transfer-event product-id new-owner "completed"))
         (ok true))
       err-not-authorized)))
 
 (define-public (log-transfer-event
   (product-id uint)
+  (to principal)
   (status (string-ascii 20)))
-  (let ((event-id (+ (var-get event-counter) u1)))
-    (map-insert transfer-events
-      { event-id: event-id }
-      {
-        product-id: product-id,
-        from: tx-sender,
-        to: contract-caller,
-        timestamp: block-height,
-        status: status
-      })
-    (var-set event-counter event-id)
-    (ok event-id)))
+  (if (or (is-eq status "completed") (is-eq status "pending") (is-eq status "cancelled"))
+    (let ((event-id (+ (var-get event-counter) u1)))
+      (map-insert transfer-events
+        { event-id: event-id }
+        {
+          product-id: product-id,
+          from: tx-sender,
+          to: to,
+          timestamp: block-height,
+          status: status
+        })
+      (var-set event-counter event-id)
+      (ok event-id))
+    err-invalid-status))
