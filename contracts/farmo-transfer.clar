@@ -36,17 +36,23 @@
   (product-id uint)
   (to principal)
   (status (string-ascii 20)))
-  (if (or (is-eq status "completed") (is-eq status "pending") (is-eq status "cancelled"))
-    (let ((event-id (+ (var-get event-counter) u1)))
-      (map-insert transfer-events
-        { event-id: event-id }
-        {
-          product-id: product-id,
-          from: tx-sender,
-          to: to,
-          timestamp: block-height,
-          status: status
-        })
-      (var-set event-counter event-id)
-      (ok event-id))
-    err-invalid-status))
+  (begin
+    (try! (contract-call? .farmo-registry get-product-owner product-id))
+    (if (or (is-eq status "completed") (is-eq status "pending") (is-eq status "cancelled"))
+      (let ((event-id (+ (var-get event-counter) u1)))
+        (map-insert transfer-events
+          { event-id: event-id }
+          {
+            product-id: product-id,
+            from: tx-sender,
+            to: to,
+            timestamp: block-height,
+            status: status
+          })
+        (var-set event-counter event-id)
+        (ok event-id))
+      err-invalid-status)))
+
+;; Read only functions
+(define-read-only (get-transfer-event (event-id uint))
+  (map-get? transfer-events { event-id: event-id }))
